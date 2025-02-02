@@ -1,4 +1,3 @@
-
 repeat task.wait() until game:IsLoaded()
 repeat task.wait() until game.Players.LocalPlayer or game.Players.LocalPlayer.Character
 setfpscap(1000)
@@ -751,4 +750,6 @@ end))
     local ohInstance1 = workspace.Towers["Ichigo (Bankai)"]
 
     game:GetService("ReplicatedStorage").Remotes.Sell:InvokeServer(ohInstance1)
+    asdasd
+
 ]]
