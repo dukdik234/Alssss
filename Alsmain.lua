@@ -321,7 +321,7 @@ local play_marcro = Tabs.Main:AddToggle("play_marcros", {Title = "Play Marcro", 
 play_marcro:OnChanged(function()
     getgenv().Setting.Play_marcro = Options.play_marcros.Value
 
-    --Save_Settings()
+    Save_Settings()
 end)
 Tabs.Main:AddSection("Games")
 local join_raid = Tabs.Main:AddToggle("join_raids", {Title = "Joins Raids", Default = getgenv().Setting.Joinsraid })
@@ -375,7 +375,7 @@ end
 task.spawn(function()
     --pcall(function()
         while wait() do
-            if getgenv().Setting.Joinsraid then
+            if getgenv().Setting.Joinsraid and workspace:FindFirstChild("TeleporterFolder") then
                 local Doors = nil
                 for _, lobby in pairs(workspace.TeleporterFolder.Raids:GetChildren()) do
                     local door = lobby:FindFirstChild("Door")
