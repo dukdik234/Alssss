@@ -1,4 +1,3 @@
-
 repeat task.wait() until game:IsLoaded()
 repeat task.wait() until game.Players.LocalPlayer or game.Players.LocalPlayer.Character
 setfpscap(1000)
@@ -433,13 +432,12 @@ task.spawn(function()
                     if getgenv().Setting.Tp_door 
                         and getgenv().Setting.Joinsraid then
                             local args = {
-                                "Central City",
-                                6,
-                                "Nightmare",
-                                true
+                                [1] = "Central City",
+                                [2] = 6,
+                                [3] = "Nightmare",
+                                [4] = true 
                             }
                             game:GetService("ReplicatedStorage").Remotes.Raids.Select:InvokeServer(unpack(args))
-                
                             task.wait()
                             game:GetService("ReplicatedStorage").Remotes.Teleporter.Interact:FireServer("Skip")
                     end
@@ -452,7 +450,7 @@ end)
 local GuiService = game:GetService("GuiService")
 coroutine.resume(coroutine.create(function()
     task.spawn(function()
-        --pcall(function()
+        pcall(function()
             if not game.Workspace:FindFirstChild("Lobby") then
                 local Values = Rep:FindFirstChild("GameEnded")
                 
@@ -485,7 +483,7 @@ coroutine.resume(coroutine.create(function()
                     end
                 end
             end
-        --end)
+        end)
     end)
 end))
 
@@ -539,16 +537,14 @@ task.spawn(function()
                                         --part[v.Data.Method](part, unpack(args))
 
                                     elseif v.Data.action == "Upgrade" and tonumber(Wave) >= tonumber(v.Data.Wave) then
-                                        local unit_parent = workspace.Towers:FindFirstChild(tostring(args[1]))
-                                        part[v.Data.Method](part, unit_parent)
+
+                                        part[v.Data.Method](part, workspace.Towers[args[1]])
 
                                     elseif v.Data.action == "ChangeTargeting" and tonumber(Wave) >= tonumber(v.Data.Wave) then
-                                        local unit_parent = workspace.Towers:FindFirstChild(tostring(args[1]))
-                                        part[v.Data.Method](part, unit_parent)
+                                        part[v.Data.Method](part, workspace.Towers[args[1]])
 
                                     elseif v.Data.action == "Sell" and tonumber(Wave) >= tonumber(v.Data.Wave) then
-                                        local unit_parent = workspace.Towers:FindFirstChild(tostring(args[1]))
-                                        part[v.Data.Method](part, unit_parent)
+                                        part[v.Data.Method](part, workspace.Towers[args[1]])
                                     end
                                 end
                             end
