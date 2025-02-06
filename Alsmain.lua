@@ -30,7 +30,7 @@ local VirtualInputManager = getgenv().Cloneref(game:GetService("VirtualInputMana
 getgenv().Setting = {
     Selct_marcro = nil,
     Play_marcro = false,
-    Marcro_action = {'Upgrade','Target','Sell','Place'},
+    Marcro_action = {'Upgrade','Target','Sell','Place','Ability'},
     Joinsraid = false,
     Replay = false
     
@@ -315,7 +315,7 @@ local Record_state = Tabs.Main:AddParagraph({
 })
 local marcroaction_drop = Tabs.Main:AddDropdown("marcroaction_drops", {
     Title = "Select Marcros Actions",
-    Values = {'Upgrade','Target','Sell','Place'},
+    Values = {'Upgrade','Target','Sell','Place','Ability'},
     Multi = true,
     Default = getgenv().Setting.Marcro_action,
 })
@@ -340,6 +340,10 @@ recording:OnChanged(function()
             Record_state:SetTitle("Marcro Recording".." : ".." 🔴 ")
             print("Save recording")
             Set_Marcro_file(Marcro_forsave[getgenv().Setting.Selct_marcro],getgenv().Setting.Selct_marcro)
+
+            if getgenv().Unit_index then
+                getgenv().Unit_index = 0
+            end
         end
     end
     --Save_Settings()
@@ -469,10 +473,15 @@ coroutine.resume(coroutine.create(function()
                                         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
                                     end
                                     task.wait(0.1)
-                                    GuiService.SelectedObject = nil
                                     --print('enfd')
+                                    if GuiService.SelectedObject then
+                                        GuiService.SelectedObject = nil
+                                    end
+                                    
                                 until not Guis:FindFirstChild("EndGameUI")
-                                GuiService.SelectedObject = nil
+                                if GuiService.SelectedObject then
+                                    GuiService.SelectedObject = nil
+                                end
                             end
                     end
                 end
@@ -491,32 +500,87 @@ end))
 
 
 
+local function Tower_add(player, index)
+    local towers = game.Workspace:WaitForChild("Towers")
+    local connection
 
+    connection = towers.ChildAdded:Connect(function(tower)
+        --pcall(function()
+        
+            task.spawn(function()
+                task.wait(.5)
+                for _,v in pairs(towers:GetChildren()) do 
+                    local owner = v:FindFirstChild("Owner")
+                    if owner and tostring(owner.Value) == player.Name and 
+                        v == tower then
+                            --print(index)
+                            local count = Instance.new("NumberValue")
+                            count.Name = "Unit_index"
+                            count.Value = index
+                            count.Parent = v
+                            return count.Value
+                    end
+                end
+            end)
+            connection:Disconnect()
+        --end)
+    end)
+
+
+    return nil
+end
 local current_index = 1
-
+local All_index = {}
 task.spawn(function()
     pcall(function()
         while wait() do
-            if getgenv().Setting.Play_marcro and getgenv().Setting.Selct_marcro then
+            if getgenv().Setting.Play_marcro and getgenv().Setting.Selct_marcro and Rep.GameStarted.Value then
                 local Load_marcro = Load_marcro_file(getgenv().Setting.Selct_marcro)
                 local Game_time = Rep:FindFirstChild("ElapsedTime").Value or 0
                 local Money = Ply.Cash.Value
                 local Wave = Rep:FindFirstChild("Wave").Value or 1
+                if Guis:FindFirstChild("Bottom") then
+                    Guis.Bottom.Frame.Frame.Visible = false
+                end
 
                 local function wait_money(required)
-                    while Money < required do
+                    while Ply.Cash.Value < required do
                         task.wait(0.1)
-                        return false
                     end
                     return true
                 end
-
+                --[[task.spawn(function()
+                    coroutine.resume(coroutine.create(function()
+                        for _, v in pairs(Load_marcro.Actions) do
+                            if current_index <= Load_marcro.index then
+                                if tonumber(v.Data.index) == current_index then
+                                    if not All_index[getgenv().Setting.Selct_marcro] then
+                                        All_index[getgenv().Setting.Selct_marcro] = {
+                                            Placetower = {},
+                                            Upgrade = {},
+                                            ChangeTargeting = {},
+                                            Sell = {},
+                                            Ability = {},
+                                        }
+                                    end
+                                    
+                                end
+                                
+                            else
+                                
+                                break
+                            end
+                        end
+                    end))
+                end)]]
                 if current_index <= Load_marcro.index then
                     Plays_state:SetTitle("Marcro Is Playing".." : ".." 🟢 ")
-                    
+
                     for _, v in pairs(Load_marcro.Actions) do
                         if tonumber(v.Data.index) == current_index then
                             if v.Data.Method then
+                                print(current_index)
+
                                 local args = {}
                                 for _, arg in pairs(v.Data.Args) do
                                     if arg.Type == "string" then
@@ -527,200 +591,93 @@ task.spawn(function()
                                 end
 
                                 local part = Rep.Remotes:FindFirstChild(v.Data.action)
-                                
-                                if part then
-                                    if v.Data.action == "PlaceTower" and tonumber(Wave) >= tonumber(v.Data.Wave) then
+                                if part and tonumber(Wave) >= tonumber(v.Data.Wave) then
+                                    if v.Data.action == "PlaceTower" then
                                         local cost = Unit_Data[args[1]].TowerInfo[0]['Cost']
-                                        if wait_money(cost) then
+                                        if Money >= cost then
                                             part[v.Data.Method](part, unpack(args))
+                                            Tower_add(Ply, v.Data.Unit_index)
                                         end
-                                        --part[v.Data.Method](part, unpack(args))
 
-                                    elseif v.Data.action == "Upgrade" and tonumber(Wave) >= tonumber(v.Data.Wave) then
+                                    elseif v.Data.action == "Upgrade" then
+                                        for _, unit in pairs(game.Workspace:FindFirstChild("Towers"):GetChildren()) do
+                                            local owner = unit:FindFirstChild("Owner")
+                                            if owner and tostring(owner.Value) == Ply.Name and unit:FindFirstChild("Unit_index") and 
+                                            unit:FindFirstChild("Unit_index").Value == v.Data.Unit_index then
+                                                local Up = unit:FindFirstChild("Upgrade").Value
+                                                local cost = Unit_Data[unit.Name].TowerInfo[Up+1]['Cost']
+                                                if Money >= cost then
+                                                    part[v.Data.Method](part, unit)
+                                                end
+                                            end
+                                        end
 
-                                        part[v.Data.Method](part, workspace.Towers[args[1]])
-
-                                    elseif v.Data.action == "ChangeTargeting" and tonumber(Wave) >= tonumber(v.Data.Wave) then
-                                        part[v.Data.Method](part, workspace.Towers[args[1]])
-
-                                    elseif v.Data.action == "Sell" and tonumber(Wave) >= tonumber(v.Data.Wave) then
-                                        part[v.Data.Method](part, workspace.Towers[args[1]])
+                                    elseif v.Data.action == "ChangeTargeting" or 
+                                        v.Data.action == "Sell"  then
+                                        for _, unit in pairs(game.Workspace:FindFirstChild("Towers"):GetChildren()) do
+                                            local owner = unit:FindFirstChild("Owner")
+                                            if owner and tostring(owner.Value) == Ply.Name and unit:FindFirstChild("Unit_index") and 
+                                            unit:FindFirstChild("Unit_index").Value == v.Data.Unit_index then
+                                                part[v.Data.Method](part, unit)
+                                            end
+                                        end
+                                    elseif  
+                                        v.Data.action == "Ability" then
+                                            for _, unit in pairs(game.Workspace:FindFirstChild("Towers"):GetChildren()) do
+                                                local owner = unit:FindFirstChild("Owner")
+                                                if owner and tostring(owner.Value) == Ply.Name and unit:FindFirstChild("Unit_index") and 
+                                                unit:FindFirstChild("Unit_index").Value == v.Data.Unit_index then
+                                                    part[v.Data.Method](part, unpack({unit,args[2]}))
+                                                end
+                                            end
                                     end
                                 end
                             end
                         end
                     end
 
-
                     current_index = current_index + 1
-                    task.wait()
+                    task.wait(0.5)
                 else
-
                     current_index = 1
-                    --Plays_state:SetTitle("Marcro Is Playing".." : ".." 🔴 ")
-                    --break
                 end
             end
         end
     end)
 end)
 
-local function GetInstancePath(obj)
-    local ffc = game:GetService("RunService").Parent.FindFirstChild
-    local getCh = game:GetService("RunService").Parent.GetChildren
-    local ts = tostring
-    local match = string.match
-    local gsub = string.gsub
-    local tableFind = table.find
-    local useGetChildren = true  
 
 
-    if not obj or typeof(obj) ~= "Instance" then
-        return nil
-    end
-
-    local path = ""
-    local current = obj
-
-    local function formatLuaString(str)
-        return (gsub(str, '["\\\n\r\t]', {
-            ['"'] = '\\"',
-            ['\\'] = '\\\\',
-            ['\n'] = '\\n',
-            ['\r'] = '\\r',
-            ['\t'] = '\\t'
-        }))
-    end
-
-    while current do
-        if current == game then
-            path = "game" .. path
-            break
-        end
-
-        local className = current.ClassName
-        local curName = ts(current)
-        local indexName
 
 
-        if match(curName, "^[%a_][%w_]*$") then
-            indexName = "." .. curName
-        else
-            local cleanName = formatLuaString(curName)
-            indexName = '["' .. cleanName .. '"]'
-        end
-
-        local parent = current.Parent
-        if parent then
-
-            if useGetChildren then
-                local firstChild = ffc(parent, curName)
-                if firstChild and firstChild ~= current then
-                    local children = getCh(parent)
-                    local index = tableFind(children, current)
-                    if index then
-                        indexName = ":GetChildren()[" .. index .. "]"
-                    end
-                end
-            end
-
-           
-            if parent == game and className and ({
-                Workspace = true,
-                Players = true,
-                Lighting = true,
-                ReplicatedStorage = true,
-                ServerScriptService = true,
-                ServerStorage = true,
-                StarterGui = true,
-                StarterPack = true,
-                StarterPlayer = true,
-                Teams = true,
-                SoundService = true,
-                Chat = true,
-                LocalizationService = true,
-                TestService = true
-            })[className] then
-                indexName = ':GetService("' .. className .. '")'
-            end
-        elseif parent == nil then
-
-            local nilTemplate = [[local getNil = function(name, class) 
-                for _, v in next, getnilinstances() do 
-                    if v.ClassName == class and v.Name == name then 
-                        return v 
-                    end 
-                end 
-            end]]
-            local nilFormat = "\n\ngetNil(\"%s\", \"%s\")"
-            indexName = nilTemplate .. nilFormat:format(current.Name, className)
-        end
-
-        path = indexName .. path
-        current = parent
-    end
-
-
-    if not path:match("^game") then
-        path = "game" .. path
-    end
-
-    return path
-end
 coroutine.resume(coroutine.create(function()
     local Action = {
         ['Upgrade'] = {Data = "Upgrade"},
         ['Target'] = {Data = "ChangeTargeting"},
         ['Sell']   = {Data = "Sell"},
         ['Place']  = {Data = "PlaceTower"},
-
+        ['Ability'] = {Data = "Ability"}
     }
     local Hook_action
     local Game_time = Rep:FindFirstChild("ElapsedTime") or 0
     local Mapname = workspace:FindFirstChild("Map").MapName or nil
     local Wave = Rep:FindFirstChild("Wave") or 1
-    local function Tower_add(value)
-        local towers = game.Workspace:WaitForChild("Towers")
-    
-
-        for _, tower in pairs(towers:GetChildren()) do
-            local owner = tower:FindFirstChild("Owner")
-            if tower.Name == value  then
-                print(GetInstancePath(tower))
-                return GetInstancePath(tower)
-            end
-        end
-    
-
-        return coroutine.wrap(function()
-            local result
-            local connection
-            connection = towers.ChildAdded:Connect(function(tower)
-                local owner = tower:FindFirstChild("Owner") 
-                if tower.Name == value then
-                    result = GetInstancePath(tower)
-                    connection:Disconnect()
-                    coroutine.yield(result)
-                    
-                end
-            end)
-    
-            coroutine.yield(nil) 
-        end)()
-    end
+    local index_foruse
+    getgenv().Unit_index = 0
     
     
     --local Arguments = {}
     Hook_action = hookfunction(getrawmetatable(getgenv().Cloneref(game)).__namecall, function(self, ...)
         local method = getnamecallmethod()
         local args = {...}
-    
+        
         if not checkcaller() and (method == "FireServer" or method == "InvokeServer") then
             task.spawn(function()
-                if getgenv().Setting.Selct_marcro and not game.Workspace:FindFirstChild("Lobby") and Isrecording then
+                if getgenv().Setting.Selct_marcro and not game.Workspace:FindFirstChild("Lobby") and Isrecording and Rep.GameStarted.Value then
                     for _, v in pairs(getgenv().Setting.Marcro_action) do
                         if Action[v] and tostring(self) == Action[v].Data then
-                            print("addindex: " .. tostring(self),"Time :", Game_time.Value , unpack(args))
+                            --print(typeof(args[1]))
+                            print("addindex: " .. tostring(self),"Time :", Game_time.Value , args[1])
                             
                             if not Marcro_forsave[getgenv().Setting.Selct_marcro] then
                                 Marcro_forsave[getgenv().Setting.Selct_marcro] = {
@@ -737,17 +694,42 @@ coroutine.resume(coroutine.create(function()
                                 else
                                     table.insert(Arguments, { Value = tostring(arg), Type = "string" })
                                 end
+                            end 
+                           
+                            --print(tostring(self))
+                            if tostring(self) == "PlaceTower" then
+                                getgenv().Unit_index = getgenv().Unit_index + 1
+                                table.insert(Marcro_forsave[getgenv().Setting.Selct_marcro].Actions, {
+                                    Data = {
+                                        index = Marcro_forsave[getgenv().Setting.Selct_marcro].index,
+                                        action = tostring(self),
+                                        Args = Arguments,
+                                        Method = method,
+                                        Wave = Wave.Value,
+                                        Unit_index = Tower_add(Ply,getgenv().Unit_index) 
+                                    },
+                                    Time = Game_time.Value
+                                })
+                            else
+                                for _,unit in pairs(game.Workspace:FindFirstChild("Towers"):GetChildren()) do
+                                    local owner = unit:FindFirstChild("Owner")
+                                    if owner and tostring(owner.Value) == Ply.Name and 
+                                        unit == args[1] then
+                                        index_foruse = unit:FindFirstChild("Unit_index").Value
+                                    end
+                                end
+                                table.insert(Marcro_forsave[getgenv().Setting.Selct_marcro].Actions, {
+                                    Data = {
+                                        index = Marcro_forsave[getgenv().Setting.Selct_marcro].index,
+                                        action = tostring(self),
+                                        Args = Arguments,
+                                        Method = method,
+                                        Wave = Wave.Value,
+                                        Unit_index = index_foruse
+                                    },
+                                    Time = Game_time.Value
+                                })
                             end
-                            table.insert(Marcro_forsave[getgenv().Setting.Selct_marcro].Actions, {
-                                Data = {
-                                    index = Marcro_forsave[getgenv().Setting.Selct_marcro].index,
-                                    action = tostring(self),
-                                    Args = Arguments,
-                                    Method = method,
-                                    Wave = Wave.Value
-                                },
-                                Time = Game_time.Value
-                            })
                         end
                     end
                     
@@ -781,4 +763,11 @@ end))
     local ohInstance1 = workspace.Towers["Ichigo (Bankai)"]
 
     game:GetService("ReplicatedStorage").Remotes.Sell:InvokeServer(ohInstance1)
+
+    -- This script was generated by Hydroxide's RemoteSpy: https://github.com/Upbolt/Hydroxide
+
+    local ohInstance1 = workspace.Towers["Saitama (Serious)"]
+    local ohNumber2 = 1
+
+    game:GetService("ReplicatedStorage").Remotes.Ability:InvokeServer(ohInstance1, ohNumber2)
 ]]
