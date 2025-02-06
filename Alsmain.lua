@@ -1,5 +1,6 @@
 repeat task.wait() until game:IsLoaded()
 repeat task.wait() until game.Players.LocalPlayer or game.Players.LocalPlayer.Character
+--loadstring(game:HttpGet("https://raw.githubusercontent.com/dukdik234/Alssss/refs/heads/main/Alsmain.lua"))()
 setfpscap(1000)
 local Custom_Cloneref = function(org) 
     if typeof(org) ~= "Instance" then
@@ -605,10 +606,10 @@ task.spawn(function()
                                             if owner and tostring(owner.Value) == Ply.Name and unit:FindFirstChild("Unit_index") and 
                                             unit:FindFirstChild("Unit_index").Value == v.Data.Unit_index then
                                                 local Up = unit:FindFirstChild("Upgrade").Value
-                                                local cost = Unit_Data[unit.Name].TowerInfo[Up+1]['Cost']
-                                                if Money >= cost then
+                                                --local cost = Unit_Data[unit.Name].TowerInfo[Up+1]['Cost']
+                                                --if Money >= cost then
                                                     part[v.Data.Method](part, unit)
-                                                end
+                                                --end
                                             end
                                         end
 
@@ -637,7 +638,7 @@ task.spawn(function()
                     end
 
                     current_index = current_index + 1
-                    task.wait(0.5)
+                    task.wait()
                 else
                     current_index = 1
                 end
