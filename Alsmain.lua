@@ -28,14 +28,15 @@ local Guis = getgenv().Cloneref(Ply:FindFirstChild("PlayerGui"))
 local Tp_ser = getgenv().Cloneref(game:GetService("TeleportService"))
 local https = getgenv().Cloneref(game:GetService("HttpService"))
 local VirtualInputManager = getgenv().Cloneref(game:GetService("VirtualInputManager"))
+local VirtualUser = getgenv().Cloneref(game:GetService("VirtualUser"))
 getgenv().Setting = {
     Selct_marcro = nil,
     Play_marcro = false,
     Marcro_action = {'Upgrade','Target','Sell','Place','Ability'},
     Joinsraid = false,
-    Replay = false
-    
-
+    Replay = false,
+    Anti_afk = true,
+    White_screen = false,
 }
 
 local Towerinfo = require(Rep:WaitForChild("Modules").TowerInfo)
@@ -380,6 +381,28 @@ replays:OnChanged(function()
 
     Save_Settings()
 end)
+
+Tabs.Main:AddSection("Misc")
+local antiakk_but = Tabs.Main:AddToggle("antiakk_buts", {Title = "Anti Afk", Default = getgenv().Setting.Anti_afk })
+antiakk_but:OnChanged(function()
+    getgenv().Setting.Anti_afk = Options.antiakk_buts.Value
+    if getgenv().antiafk then
+        getgenv().antiafk()
+    end
+    Save_Settings()
+end)
+local white_but = Tabs.Main:AddToggle("white_buts", {Title = "WhiteScreen", Default = getgenv().Setting.White_screen })
+white_but:OnChanged(function()
+    getgenv().Setting.White_screen = Options.white_buts.Value
+    Save_Settings()
+
+    if getgenv().Setting.White_screen then
+        Runs:Set3dRenderingEnabled(false)
+    else
+        Runs:Set3dRenderingEnabled(true)
+    end
+end)
+
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 
@@ -604,6 +627,7 @@ task.spawn(function()
                                         if Money >= cost then
                                             part[v.Data.Method](part, unpack(args))
                                             Tower_add(Ply, v.Data.Unit_index,false)
+                                            task.wait(.3)
                                         end
 
                                     elseif v.Data.action == "Upgrade" then
@@ -644,7 +668,7 @@ task.spawn(function()
                     end
 
                     current_index = current_index + 1
-                    task.wait()
+                    task.wait(.6)
                 else
                     current_index = 1
                 end
@@ -751,6 +775,32 @@ coroutine.resume(coroutine.create(function()
    
 end))
 
+--getgenv().Setting.Anti_afk
+
+task.spawn(function()
+    getgenv().antiafk = function()
+        if getgenv().Setting.Anti_afk then
+            if getconnections then
+                for _, v in ipairs(getconnections(Ply.Idled)) do
+                    if v["Disable"] then
+                        v["Disable"](v)
+                        --print("Anti afk 1")
+                    elseif v["Disconnect"] then
+                        v["Disconnect"](v)
+                        --print("Anti afk 1")
+                    end
+                end
+            else
+                Ply.Idled:Connect(function()
+                    --print("Anti afk 2")
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton2(Vector2.new(0, 0))
+                end)
+            end
+        end
+    end
+    getgenv().antiafk()
+end)
 
 --[[
 
