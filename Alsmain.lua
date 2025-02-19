@@ -579,33 +579,10 @@ task.spawn(function()
                     end
                     return true
                 end
-                --[[task.spawn(function()
-                    coroutine.resume(coroutine.create(function()
-                        for _, v in pairs(Load_marcro.Actions) do
-                            if current_index <= Load_marcro.index then
-                                if tonumber(v.Data.index) == current_index then
-                                    if not All_index[getgenv().Setting.Selct_marcro] then
-                                        All_index[getgenv().Setting.Selct_marcro] = {
-                                            Placetower = {},
-                                            Upgrade = {},
-                                            ChangeTargeting = {},
-                                            Sell = {},
-                                            Ability = {},
-                                        }
-                                    end
-                                    
-                                end
-                                
-                            else
-                                
-                                break
-                            end
-                        end
-                    end))
-                end)]]
+                
                 if current_index <= Load_marcro.index then
                     Plays_state:SetTitle("Marcro Is Playing".." : ".." 🟢 ")
-
+                    local cannext = false
                     for _, v in pairs(Load_marcro.Actions) do
                         if tonumber(v.Data.index) == current_index then
                             if v.Data.Method then
@@ -621,13 +598,18 @@ task.spawn(function()
                                 end
 
                                 local part = Rep.Remotes:FindFirstChild(v.Data.action)
-                                if part and tonumber(Wave) >= tonumber(v.Data.Wave) then
+                                if part then
                                     if v.Data.action == "PlaceTower" then
                                         local cost = Unit_Data[args[1]].TowerInfo[0]['Cost']
+                                        while Money < cost do
+                                            wait()
+                                            cannext = false
+                                        end
                                         if Money >= cost then
                                             part[v.Data.Method](part, unpack(args))
                                             Tower_add(Ply, v.Data.Unit_index,false)
                                             task.wait(.3)
+                                            cannext = true
                                         end
 
                                     elseif v.Data.action == "Upgrade" then
@@ -636,10 +618,15 @@ task.spawn(function()
                                             if owner and tostring(owner.Value) == Ply.Name and unit:FindFirstChild("Unit_index") and 
                                             unit:FindFirstChild("Unit_index").Value == v.Data.Unit_index then
                                                 local Up = unit:FindFirstChild("Upgrade").Value
-                                                --local cost = Unit_Data[unit.Name].TowerInfo[Up+1]['Cost']
-                                                --if Money >= cost then
+                                                local cost = Unit_Data[unit.Name].TowerInfo[Up+1]['Cost']
+                                                while Money < cost do
+                                                    wait()
+                                                    cannext = false
+                                                end
+                                                if Money >= cost then
                                                     part[v.Data.Method](part, unit)
-                                                --end
+                                                    cannext = true
+                                                end
                                             end
                                         end
 
@@ -666,7 +653,9 @@ task.spawn(function()
                             end
                         end
                     end
-
+                    while not cannext do
+                        task.wait()  
+                    end
                     current_index = current_index + 1
                     task.wait(.6)
                 else
