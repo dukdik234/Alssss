@@ -567,22 +567,17 @@ task.spawn(function()
             if getgenv().Setting.Play_marcro and getgenv().Setting.Selct_marcro  then
                 local Load_marcro = Load_marcro_file(getgenv().Setting.Selct_marcro)
                 local Game_time = Rep:FindFirstChild("ElapsedTime").Value or 0
-                local Money = Ply.Cash.Value
+                local Money = Ply.Cash
                 local Wave = Rep:FindFirstChild("Wave").Value or 1
                 if Guis:FindFirstChild("Bottom") then
                     Guis.Bottom.Frame.Frame.Visible = false
                 end
 
-                local function wait_money(required)
-                    while Ply.Cash.Value < required do
-                        task.wait(0.1)
-                    end
-                    return true
-                end
+
                 
                 if current_index <= Load_marcro.index then
                     Plays_state:SetTitle("Marcro Is Playing".." : ".." 🟢 ")
-                    local cannext = false
+                   
                     for _, v in pairs(Load_marcro.Actions) do
                         if tonumber(v.Data.index) == current_index then
                             if v.Data.Method then
@@ -601,11 +596,15 @@ task.spawn(function()
                                 if part then
                                     if v.Data.action == "PlaceTower" then
                                         local cost = Unit_Data[args[1]].TowerInfo[0]['Cost']
-                                        while Money < cost do
-                                            wait()
+                                        print(Money.Value,cost)
+                                        while Money.Value < cost do
+                                            task.wait()
+
                                             cannext = false
+                                            --print(123)
                                         end
-                                        if Money >= cost then
+
+                                        if Money.Value >= cost then
                                             part[v.Data.Method](part, unpack(args))
                                             Tower_add(Ply, v.Data.Unit_index,false)
                                             task.wait(.3)
@@ -619,11 +618,11 @@ task.spawn(function()
                                             unit:FindFirstChild("Unit_index").Value == v.Data.Unit_index then
                                                 local Up = unit:FindFirstChild("Upgrade").Value
                                                 local cost = Unit_Data[unit.Name].TowerInfo[Up+1]['Cost']
-                                                while Money < cost do
-                                                    wait()
+                                                while Money.Value < cost do
+                                                    task.wait()
                                                     cannext = false
                                                 end
-                                                if Money >= cost then
+                                                if Money.Value >= cost then
                                                     part[v.Data.Method](part, unit)
                                                     cannext = true
                                                 end
