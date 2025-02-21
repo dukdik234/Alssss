@@ -568,11 +568,17 @@ task.spawn(function()
                 local Load_marcro = Load_marcro_file(getgenv().Setting.Selct_marcro)
                 local Game_time = Rep:FindFirstChild("ElapsedTime").Value or 0
                 local Money = Ply.Cash
-                local Wave = Rep:FindFirstChild("Wave").Value or 1
+                local Wave = Rep:FindFirstChild("Wave")
                 if Guis:FindFirstChild("Bottom") then
                     Guis.Bottom.Frame.Frame.Visible = false
                 end
-
+                task.spawn(function()
+                    Wave:GetPropertyChangedSignal("Value"):Connect(function()
+                        if Wave.Value == 1 then 
+                            current_index = 1
+                        end
+                    end)
+                end)
 
                 
                 if current_index <= Load_marcro.index then
@@ -617,15 +623,15 @@ task.spawn(function()
                                             if owner and tostring(owner.Value) == Ply.Name and unit:FindFirstChild("Unit_index") and 
                                             unit:FindFirstChild("Unit_index").Value == v.Data.Unit_index then
                                                 local Up = unit:FindFirstChild("Upgrade").Value
-                                                local cost = Unit_Data[unit.Name].TowerInfo[Up+1]['Cost']
-                                                while Money.Value < cost do
+                                               -- local cost = Unit_Data[unit.Name].TowerInfo[Up+1]['Cost']
+                                               --[[ while Money.Value < cost do
                                                     task.wait()
                                                     cannext = false
-                                                end
-                                                if Money.Value >= cost then
+                                                end]]
+                                                --if Money.Value >= cost then
                                                     part[v.Data.Method](part, unit)
                                                     cannext = true
-                                                end
+                                                --end
                                             end
                                         end
 
